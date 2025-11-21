@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: auth-service
+  config:
+    import: "optional:configserver:http://config-server:8888"
+  profiles:
+    active: dev
+
+
+  datasource:
+    url: jdbc:h2:mem:localdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+
+  flyway:
+    enabled: true
+    # ensure this matches where your .sql files are
+    locations: classpath:db/migration
+    baseline-on-migrate: true

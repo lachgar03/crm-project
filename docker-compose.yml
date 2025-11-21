@@ -1,0 +1,110 @@
+services:
+  # 1. Configuration Server
+  config-server:
+    build:
+      context: . # Build from the root 'olivesgreen' folder
+      dockerfile: config-server/Dockerfile
+      args:
+        SERVICE_NAME: config-server # Pass the folder name as an arg
+    ports:
+      - "8888:8888"
+    environment:
+      GIT_USERNAME: ${GIT_USERNAME}
+      GIT_PASSWORD: ${GIT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 30s # Give it 30s to clone the repo and start
+
+  # 2. Eureka Server
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+      args:
+        SERVICE_NAME: eureka-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_FAIL_FAST: false
+      SPRING_CLOUD_CONFIG_FAILFAST: false
+      SPRING_CLOUD_BOOTSTRAP_ENABLED: false # <-- ADD THIS
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  # 3. PostgreSQL Database
+  postgres-db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # Reads from .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 4. API Gateway
+  gateway-service:
+    build:
+      context: .
+      dockerfile: gateway-service/Dockerfile
+      args:
+        SERVICE_NAME: gateway-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_FAIL_FAST: false
+      SPRING_CLOUD_CONFIG_FAILFAST: false
+      SPRING_CLOUD_BOOTSTRAP_ENABLED: false # <-- ADD THIS
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+
+
+  # 5. User Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+      args:
+        SERVICE_NAME: auth-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_FAIL_FAST: false
+      SPRING_CLOUD_CONFIG_FAILFAST: false
+      SPRING_CLOUD_BOOTSTRAP_ENABLED: false # <-- ADD THIS
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+      USER_DB_PASSWORD: ${USER_DB_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+
+volumes:
+  postgres_data:
