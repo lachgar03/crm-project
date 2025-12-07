@@ -12,7 +12,7 @@ services:
       GIT_USERNAME: ${GIT_USERNAME}
       GIT_PASSWORD: ${GIT_PASSWORD}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
       interval: 15s
       timeout: 5s
       retries: 30
@@ -37,7 +37,7 @@ services:
       SPRING_CLOUD_CONFIG_FAILFAST: false
       SPRING_CLOUD_BOOTSTRAP_ENABLED: false # <-- ADD THIS
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
       interval: 15s
       timeout: 5s
       retries: 30
@@ -53,7 +53,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d postgres" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -81,7 +81,6 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
 
-
   # 5. User Service
   auth-service:
     build:
@@ -101,10 +100,68 @@ services:
       SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
       SPRING_CLOUD_CONFIG_FAIL_FAST: false
       SPRING_CLOUD_CONFIG_FAILFAST: false
-      SPRING_CLOUD_BOOTSTRAP_ENABLED: false # <-- ADD THIS
+      SPRING_CLOUD_BOOTSTRAP_ENABLED: false
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
       USER_DB_PASSWORD: ${USER_DB_PASSWORD}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+
+  # 6. Sales Service
+  sales-service:
+    build:
+      context: .
+      dockerfile: sales-service/Dockerfile
+      args:
+        SERVICE_NAME: sales-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_FAIL_FAST: false
+      SPRING_CLOUD_CONFIG_FAILFAST: false
+      SPRING_CLOUD_BOOTSTRAP_ENABLED: false
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+
+  # 7. Billing Service
+  billing-service:
+    build:
+      context: .
+      dockerfile: billing-service/Dockerfile
+      args:
+        SERVICE_NAME: billing-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_FAIL_FAST: false
+      SPRING_CLOUD_CONFIG_FAILFAST: false
+      SPRING_CLOUD_BOOTSTRAP_ENABLED: false
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+
+  # 8. Frontend
+  crm-frontend:
+    build:
+      context: .
+      dockerfile: crm-frontend/Dockerfile
+    ports:
+      - "4200:80"
 
 volumes:
   postgres_data:

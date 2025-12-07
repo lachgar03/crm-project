@@ -1,36 +1,18 @@
-HELP.md
+# Java/Maven
 target/
+*.jar
 .mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+**/.idea/
+**/*.iml
+**/logs/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
+# Node/Angular
+node_modules/
+dist/
+.angular/
 .vscode/
 
+# System/Misc
+.DS_Store
 .env
-.env
+.gemini/
