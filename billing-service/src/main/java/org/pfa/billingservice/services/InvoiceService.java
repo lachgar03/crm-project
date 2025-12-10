@@ -14,6 +14,7 @@ import java.util.Optional;
 public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
+    private final org.pfa.billingservice.client.CustomerClient customerClient;
 
     @Transactional(readOnly = true)
     public List<Invoice> getAllInvoices() {
@@ -27,6 +28,14 @@ public class InvoiceService {
 
     @Transactional
     public Invoice createInvoice(Invoice invoice) {
+        // Validation: Check if Customer exists in Sales Service
+        if (invoice.getCustomerId() != null) {
+            try {
+                customerClient.getCustomerById(invoice.getCustomerId());
+            } catch (Exception e) {
+                throw new RuntimeException("Customer not found or Sales Service unavailable: " + e.getMessage());
+            }
+        }
         return invoiceRepository.save(invoice);
     }
 

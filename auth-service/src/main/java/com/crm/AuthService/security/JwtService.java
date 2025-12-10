@@ -8,11 +8,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import org.springframework.security.core.GrantedAuthority;
+
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class JwtService {
@@ -29,12 +33,26 @@ public class JwtService {
     public String generateToken(UserDetails userDetails, Long tenantId) {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("tenantId", tenantId);
+
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+        extraClaims.put("roles", roles);
+
         return buildToken(extraClaims, userDetails, jwtExpiration);
     }
 
     public String generateRefreshToken(UserDetails userDetails, Long tenantId) {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("tenantId", tenantId);
+
+        // Roles also good to have in refresh, though primarily used for new access
+        // token
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+        extraClaims.put("roles", roles);
+
         return buildToken(extraClaims, userDetails, jwtRefreshExpiration);
     }
 
